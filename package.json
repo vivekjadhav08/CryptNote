@@ -1,0 +1,17 @@
+{
+  "name": "cryptnote",
+  "version": "1.0.0",
+  "description": "MERN stack CryptNote project",
+  "main": "index.js",
+  "scripts": {
+    "frontend": "cd frontend && npm start",
+    "server": "cd backend && nodemon index.js",
+    "both": "concurrently \"npm run frontend\" \"npm run server\""
+  },
+  "author": "ViVeK",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.10"
+  }
+}
