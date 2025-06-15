@@ -11,8 +11,7 @@ const ResetToken = require('../models/ResetToken');
 
 
 require('dotenv').config(); // for using .env variables
-
-const JWT_SECRET = "ViVeK@08$";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 //ROUTE 1 : Create User Endpoint: api/auth/createuser No login req
 router.post(

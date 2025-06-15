@@ -1,29 +1,23 @@
 const ConnectToMongo = require("./db");
 const express = require("express");
-var cors = require("cors");
+const cors = require("cors");
+require("dotenv").config();
 
 ConnectToMongo();
 const app = express();
-const port = 5000;
 
-//middle ware
+// Use PORT from environment or default to 5000
+const port = process.env.PORT || 5000;
+
+// Middleware
 app.use(express.json());
 app.use(cors());
 
-// app.use(
-//   cors({
-//     origin: "http://192.168.31.158:1001",
-//   })
-// );
-
-//Available routes
+// Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/notes", require("./routes/notes"));
 
+// Start server
 app.listen(port, () => {
-  console.log(`http://localhost:${port}`)
-})
-
-// app.listen(port, "0.0.0.0", () => {
-//   console.log(`Server running at http://192.168.31.158:${port}`);
-// });
+  console.log(`🚀 Server running on http://localhost:${port}`);
+});
