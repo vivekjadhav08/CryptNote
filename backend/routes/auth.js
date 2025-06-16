@@ -8,11 +8,10 @@ var fetchuser = require("../middleware/fetchuser");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const ResetToken = require('../models/ResetToken');
-const LIVE_URL = process.env.LIVE_URL;
-
 
 require('dotenv').config(); // for using .env variables
 const JWT_SECRET = process.env.JWT_SECRET;
+const LIVE_URL = process.env.LIVE_URL || "http://localhost:3000";
 
 //ROUTE 1 : Create User Endpoint: api/auth/createuser No login req
 router.post(

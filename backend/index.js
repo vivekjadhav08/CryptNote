@@ -14,6 +14,7 @@ app.use(express.json());
 // app.use(cors());
 app.use(cors({
   origin: "https://cryptnote.netlify.app"
+  // origin:"http://localhost:3000"
 }));
 
 
@@ -23,5 +24,7 @@ app.use("/api/notes", require("./routes/notes"));
 
 // Start server
 app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+  // console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log("🚀 Server running ");
+
 });

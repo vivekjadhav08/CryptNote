@@ -146,6 +146,12 @@ const UserProfile = (props) => {
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={5}
               />
+              {password.length > 0 && password.length < 5 && (
+                <div className="form-text text-danger">
+                  Password must be at least 5 characters.
+                </div>
+              )}
+
               <span
                 onClick={() => setShowPassword((prev) => !prev)}
                 style={{
@@ -178,6 +184,12 @@ const UserProfile = (props) => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 minLength={5}
               />
+              {confirmPassword.length > 0 && password !== confirmPassword && (
+                <div className="form-text text-danger">
+                  Passwords do not match.
+                </div>
+              )}
+
               <span
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
                 style={{

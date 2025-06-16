@@ -1,8 +1,10 @@
 import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import DarkModeContext from "../context/mode/DarkModeContext";
-const baseUrl = process.env.REACT_APP_API_BASE_URL; 
-const Signup = (props) => {
+
+const baseUrl = process.env.REACT_APP_API_BASE_URL;
+
+const Signup = ({ showAlert }) => {
   const [credentials, setCredentials] = useState({
     name: "",
     email: "",
@@ -10,35 +12,57 @@ const Signup = (props) => {
     cpassword: "",
   });
 
-  // State to toggle password visibility for both fields
   const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
-
   const { isDarkMode } = useContext(DarkModeContext);
   const navigate = useNavigate();
 
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const { name, email, password, cpassword } = credentials;
 
-    if (password !== cpassword) {
-      props.showAlert("Passwords do not match", "danger");
+    if (!name || !email || !password || !cpassword) {
+      showAlert("All fields are required.", "error");
       return;
     }
 
-    const response = await fetch(`${baseUrl}/auth/createuser`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+    if (!validateEmail(email)) {
+      showAlert("Please enter a valid email address.", "error");
+      return;
+    }
 
-    const json = await response.json();
+    if (password.length < 5) {
+      showAlert("Password must be at least 5 characters.", "error");
+      return;
+    }
 
-    if (json.success) {
-      props.showAlert("Account created Successfully. Please login.", "success");
-      navigate("/login");
-    } else {
-      props.showAlert("Email Already Exist", "danger");
+    if (password !== cpassword) {
+      showAlert("Passwords do not match.", "error");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${baseUrl}/auth/createuser`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const json = await response.json();
+
+      if (json.success) {
+        showAlert("Account created successfully. Please login.", "success");
+        navigate("/login");
+      } else {
+        showAlert("Email already exists.", "error");
+      }
+    } catch (err) {
+      showAlert("Something went wrong. Please try again later.", "error");
     }
   };
 
@@ -51,15 +75,17 @@ const Signup = (props) => {
       className={`d-flex justify-content-center align-items-center ${
         isDarkMode ? "bg-dark text-light" : "bg-light text-dark"
       }`}
-      style={{ height: "100vh" }}
+      style={{ minHeight: "100vh" }}
     >
       <div
-        className={`card shadow-sm p-4 ${
+        className={`card p-4 shadow rounded-4 ${
           isDarkMode ? "bg-secondary text-light" : "bg-white"
         }`}
-        style={{ width: "100%", maxWidth: "400px" }}
+        style={{ width: "100%", maxWidth: "420px" }}
       >
-        <h3 className="text-center mb-4">Create Your Account</h3>
+        <h2 className="text-center text-primary fw-bold mb-1">🔐 CryptNote 📝</h2>
+        <h4 className="text-center mb-4">Create Account</h4>
+
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="name" className="form-label">
@@ -74,13 +100,12 @@ const Signup = (props) => {
               name="name"
               value={credentials.name}
               onChange={onChange}
-              required
             />
           </div>
 
           <div className="mb-3">
             <label htmlFor="email" className="form-label">
-              Email address
+              Email Address
             </label>
             <input
               type="email"
@@ -91,11 +116,7 @@ const Signup = (props) => {
               name="email"
               value={credentials.email}
               onChange={onChange}
-              required
             />
-            <div className={`form-text ${isDarkMode ? "text-light" : ""}`}>
-              We'll never share your email with anyone else.
-            </div>
           </div>
 
           <div className="mb-3 position-relative">
@@ -111,8 +132,6 @@ const Signup = (props) => {
               name="password"
               value={credentials.password}
               onChange={onChange}
-              minLength={5}
-              required
             />
             <span
               onClick={() => setShowPassword((prev) => !prev)}
@@ -128,9 +147,6 @@ const Signup = (props) => {
             >
               {showPassword ? "🙈" : "👁️"}
             </span>
-            <div className={`form-text ${isDarkMode ? "text-light" : ""}`}>
-              Minimum 5 characters.
-            </div>
           </div>
 
           <div className="mb-3 position-relative">
@@ -146,8 +162,6 @@ const Signup = (props) => {
               name="cpassword"
               value={credentials.cpassword}
               onChange={onChange}
-              minLength={5}
-              required
             />
             <span
               onClick={() => setShowCPassword((prev) => !prev)}
@@ -159,37 +173,29 @@ const Signup = (props) => {
                 userSelect: "none",
                 color: isDarkMode ? "#ccc" : "#555",
               }}
-              aria-label={showCPassword ? "Hide confirm password" : "Show confirm password"}
+              aria-label={
+                showCPassword ? "Hide confirm password" : "Show confirm password"
+              }
             >
               {showCPassword ? "🙈" : "👁️"}
             </span>
           </div>
 
-          <div className="form-check mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="termsCheck"
-              required
-            />
-            <label className="form-check-label" htmlFor="termsCheck">
-              I agree to the Terms & Conditions
-            </label>
-          </div>
-
-          <button type="submit" className="btn btn-success w-100 mb-2">
+          <button type="submit" className="btn btn-success w-100">
             Sign Up
           </button>
 
-          <div className="text-center">
+          <div className="text-center mt-3">
             <small>
               Already have an account?{" "}
-              <a
-                className={isDarkMode ? "text-light" : ""}
-                href="/login"
+              <Link
+                to="/login"
+                className={`text-decoration-none ${
+                  isDarkMode ? "text-light" : "text-primary"
+                }`}
               >
                 Login here
-              </a>
+              </Link>
             </small>
           </div>
         </form>
