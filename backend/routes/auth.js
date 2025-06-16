@@ -8,6 +8,7 @@ var fetchuser = require("../middleware/fetchuser");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const ResetToken = require('../models/ResetToken');
+const LIVE_URL = process.env.LIVE_URL;
 
 
 require('dotenv').config(); // for using .env variables
@@ -88,7 +89,7 @@ router.post("/login", [
       },
     };
 
-    const JWT_SECRET = process.env.JWT_SECRET; // <-- Make sure this line exists
+    // const JWT_SECRET = process.env.JWT_SECRET; // <-- Make sure this line exists
     const authToken = jwt.sign(data, JWT_SECRET);
 
     success = true;
@@ -131,8 +132,8 @@ router.post('/forgotpassword', async (req, res) => {
       token: hashedToken,
       expireAt: Date.now() + 1000 * 60 * 15, // 15 minutes
     }).save();
-
-    const resetURL = `http://192.168.31.158:1001/resetpassword/${token}`;
+ 
+    const resetURL = `${LIVE_URL}/resetpassword/${token}`;
 
     // Email setup
     const transporter = nodemailer.createTransport({
