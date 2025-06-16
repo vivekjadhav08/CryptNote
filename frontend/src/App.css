@@ -1,0 +1,58 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+/* Customize other elements to match dark mode */
+
+body.dark-mode {
+  background-color: #121212;
+  color: #eee;
+}
+
+/* Customize other elements to match dark mode */
+
+/* SweetAlert2 toast custom styles */
+.shadow-lg {
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+}
+
+.rounded {
+  border-radius: 0.5rem !important;
+}
+
+.swal2-popup {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+  font-size: 1rem !important;
+  border: none !important;
+}
+
+.swal2-title {
+  font-weight: 600 !important;
+  color: #fff !important;
+}
+
+.swal2-content {
+  color: #ddd !important;
+  margin-top: 0.25em !important;
+}
+
+.swal2-timer-progress-bar {
+  background: #4caf50 !important; /* green progress bar */
+}
+
+.swal2-popup:hover {
+  filter: brightness(1.1);
+  transition: filter 0.3s ease;
+}
+
+.navbar.fixed-top {
+  backdrop-filter: blur(10px); /* ✅ Blur effect */
+  background-color: rgba(255, 255, 255, 0.75); /* ✅ Translucent background */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1030; /* Above other content */
+}
+
+.dark-mode .navbar.fixed-top {
+  background-color: rgba(33, 37, 41, 0.75); /* For dark mode */
+}
