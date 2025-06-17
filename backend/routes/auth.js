@@ -241,17 +241,23 @@ router.put("/updateuser", fetchuser, async (req, res) => {
   }
 });
 
-// ROUTE 6: Delete user account - DELETE: /api/auth/deleteuser - Login required
+const Note = require("../models/Note"); // Make sure Note model is imported
+
+// ROUTE 6: Delete user account and their notes - DELETE: /api/auth/deleteuser - Login required
 router.delete("/deleteuser", fetchuser, async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Delete all notes for this user
+    await Note.deleteMany({ user: userId });
+
+    // Then delete the user
     const user = await User.findByIdAndDelete(userId);
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
     }
 
-    res.json({ success: true, message: "User account deleted successfully" });
+    res.json({ success: true, message: "User account and all associated notes deleted successfully" });
   } catch (error) {
     console.error("Delete user error:", error.message);
     res.status(500).json({ success: false, error: "Internal Server Error" });

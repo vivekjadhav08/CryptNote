@@ -14,7 +14,6 @@ router.get('/fetchallnotes', fetchuser, async (req, res) => {
         console.error(error.message);
         res.status(500).send("Internal Server Error")
     }
-
 })
 
 //ROUTE 2 :Add notes  Endpoint: Post "api/notes/addnote"  login required
