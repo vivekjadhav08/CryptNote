@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import DarkModeContext from "../context/mode/DarkModeContext";
+import Swal from "sweetalert2";
 
 const UserProfile = (props) => {
   const { isDarkMode } = useContext(DarkModeContext);
@@ -80,6 +81,42 @@ const UserProfile = (props) => {
   const onChange = (e) => {
     setUser({ ...user, [e.target.name]: e.target.value });
   };
+ 
+  const handleDeleteAccount = async () => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This action will permanently delete your account!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await fetch(`${baseUrl}/auth/deleteuser`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "auth-token": localStorage.getItem("token"),
+        },
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        await Swal.fire("Deleted!", "Your account has been deleted.", "success");
+        localStorage.removeItem("token");
+        navigate("/signup");
+      } else {
+        props.showAlert("Failed to delete account: " + res.error, "danger");
+      }
+    } catch (err) {
+      console.error("Delete error:", err.message);
+      props.showAlert("Server error while deleting account", "danger");
+    }
+  }
+};
 
   return (
     <div
@@ -214,6 +251,13 @@ const UserProfile = (props) => {
               disabled={password && password.length < 5}
             >
               Update Profile
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger w-100 mt-3"
+              onClick={handleDeleteAccount}
+            >
+              Delete Account
             </button>
           </form>
         )}
