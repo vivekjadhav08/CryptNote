@@ -59,28 +59,30 @@ const Navbar = () => {
     fetchUser();
   }, [location]);
 
-  useEffect(() => {
-    let inactivityTimer = null;
-    const resetTimer = () => {
-      clearTimeout(inactivityTimer);
-      if (isLoggedIn) {
-        inactivityTimer = setTimeout(() => {
-          console.log("User inactive. Logging out.");
-          handleLogout();
-        }, 5 * 60 * 1000);
-      }
-    };
+useEffect(() => {
+  let inactivityTimer = null;
 
-    window.addEventListener("mousemove", resetTimer);
-    window.addEventListener("keydown", resetTimer);
-    resetTimer();
+  const resetTimer = () => {
+    clearTimeout(inactivityTimer);
+    if (isLoggedIn) {
+      inactivityTimer = setTimeout(() => {
+        console.log("User inactive. Logging out.");
+        handleLogout();
+      }, 5 * 60 * 1000); // 5 minutes
+    }
+  };
 
-    return () => {
-      clearTimeout(inactivityTimer);
-      window.removeEventListener("mousemove", resetTimer);
-      window.removeEventListener("keydown", resetTimer);
-    };
-  }, [isLoggedIn]);
+  const events = ["mousemove", "keydown", "touchstart", "scroll"];
+  events.forEach((event) => window.addEventListener(event, resetTimer));
+
+  resetTimer(); // Start the timer initially
+
+  return () => {
+    clearTimeout(inactivityTimer);
+    events.forEach((event) => window.removeEventListener(event, resetTimer));
+  };
+}, [isLoggedIn]);
+
 
   useEffect(() => {
     const handleClickOutside = (event) => {

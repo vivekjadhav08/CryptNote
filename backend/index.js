@@ -13,8 +13,8 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 // app.use(cors());
 app.use(cors({
-  // origin: "https://cryptnote.netlify.app"
-  origin:"http://localhost:3000"
+  origin: "https://cryptnote.netlify.app"
+  // origin:"http://localhost:3000"
 }));
 
 

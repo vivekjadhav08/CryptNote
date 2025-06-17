@@ -2,8 +2,7 @@ import NoteContext from "./noteContext";
 import { useState } from "react";
 
 const NoteState = (props) => {
-  // const host = "http://localhost:5000";
-  const host = "https://cryptnote-backend.onrender.com";
+  const host = process.env.REACT_APP_API_BASE_URL;
   
   const notesInitial = [];
   const [notes, setNotes] = useState(notesInitial);
@@ -13,7 +12,7 @@ const NoteState = (props) => {
 
   // 📒 Get all notes
   const getNotes = async () => {
-    const response = await fetch(`${host}/api/notes/fetchallnotes`, {
+    const response = await fetch(`${host}/notes/fetchallnotes`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -26,7 +25,7 @@ const NoteState = (props) => {
 
   // ➕ Add a note
   const addNote = async (title, description, tag) => {
-    const response = await fetch(`${host}/api/notes/addnote`, {
+    const response = await fetch(`${host}/notes/addnote`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -40,7 +39,7 @@ const NoteState = (props) => {
 
   // ❌ Delete a note
   const deleteNote = async (id) => {
-    await fetch(`${host}/api/notes/deletenote/${id}`, {
+    await fetch(`${host}/notes/deletenote/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -54,7 +53,7 @@ const NoteState = (props) => {
 
   // ✏️ Edit a note
   const editNote = async (id, title, description, tag) => {
-    await fetch(`${host}/api/notes/updatenote/${id}`, {
+    await fetch(`${host}/notes/updatenote/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
