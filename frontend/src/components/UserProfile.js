@@ -1,267 +1,98 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import DarkModeContext from "../context/mode/DarkModeContext";
 import Swal from "sweetalert2";
 
-const UserProfile = (props) => {
+const UserProfile = ({ showAlert }) => {
   const { isDarkMode } = useContext(DarkModeContext);
-
   const [user, setUser] = useState({ name: "", email: "" });
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showCPw, setShowCPw] = useState(false);
   const [loading, setLoading] = useState(true);
   const baseUrl = process.env.REACT_APP_API_BASE_URL;
   const navigate = useNavigate();
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
-      const response = await fetch(`${baseUrl}/auth/getuser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "auth-token": localStorage.getItem("token"),
-        },
-      });
-      const data = await response.json();
+      const res = await fetch(`${baseUrl}/auth/getuser`, { method: "POST", headers: { "Content-Type": "application/json", "auth-token": localStorage.getItem("token") } });
+      const data = await res.json();
       setUser({ name: data.name, email: data.email });
       setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
-      props.showAlert("Failed to fetch user", "danger");
-      navigate("/login");
-    }
-  };
+    } catch { showAlert("Failed to fetch user", "error"); navigate("/login"); }
+  }, [baseUrl, navigate, showAlert]);
 
   useEffect(() => {
-    if (!localStorage.getItem("token")) {
-      navigate("/login");
-    } else {
-      fetchUser();
-    }
-  }, []);
+    if (!localStorage.getItem("token")) navigate("/login");
+    else fetchUser();
+  }, [fetchUser, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (password !== confirmPassword) {
-      props.showAlert("Passwords do not match", "danger");
-      return;
-    }
-
+    if (password && password !== confirmPassword) { showAlert("Passwords do not match", "error"); return; }
     try {
-      const response = await fetch(`${baseUrl}/auth/updateuser`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "auth-token": localStorage.getItem("token"),
-        },
-        body: JSON.stringify({
-          name: user.name,
-          password: password.trim() !== "" ? password : undefined,
-        }),
-      });
-
-      const json = await response.json();
-      if (json.success) {
-        props.showAlert("Profile updated successfully", "success");
-        setPassword("");
-        setConfirmPassword("");
-        navigate("/");
-      } else {
-        props.showAlert("Failed to update profile", "danger");
-      }
-    } catch (err) {
-      console.error("Update error:", err.message);
-      props.showAlert("Server error", "danger");
-    }
+      const res = await fetch(`${baseUrl}/auth/updateuser`, { method: "PUT", headers: { "Content-Type": "application/json", "auth-token": localStorage.getItem("token") }, body: JSON.stringify({ name: user.name, password: password.trim() || undefined }) });
+      const json = await res.json();
+      if (json.success) { showAlert("Profile updated!", "success"); setPassword(""); setConfirmPassword(""); navigate("/"); }
+      else showAlert("Failed to update profile", "error");
+    } catch { showAlert("Server error", "error"); }
   };
 
-  const onChange = (e) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
-  };
- 
   const handleDeleteAccount = async () => {
-  const result = await Swal.fire({
-    title: "Are you sure?",
-    text: "This action will permanently delete your account!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "Yes, delete it!",
-  });
-
-  if (result.isConfirmed) {
-    try {
-      const response = await fetch(`${baseUrl}/auth/deleteuser`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "auth-token": localStorage.getItem("token"),
-        },
-      });
-
-      const res = await response.json();
-      if (res.success) {
-        await Swal.fire("Deleted!", "Your account has been deleted.", "success");
-        localStorage.removeItem("token");
-        navigate("/signup");
-      } else {
-        props.showAlert("Failed to delete account: " + res.error, "danger");
-      }
-    } catch (err) {
-      console.error("Delete error:", err.message);
-      props.showAlert("Server error while deleting account", "danger");
+    const result = await Swal.fire({ title: "Delete account?", text: "All your notes will be permanently deleted.", icon: "warning", showCancelButton: true, confirmButtonColor: "#d93025", cancelButtonColor: "#5f6368", confirmButtonText: "Delete account", background: isDarkMode ? "#2d2e30" : "#fff", color: isDarkMode ? "#e8eaed" : "#202124" });
+    if (result.isConfirmed) {
+      try {
+        const res = await fetch(`${baseUrl}/auth/deleteuser`, { method: "DELETE", headers: { "Content-Type": "application/json", "auth-token": localStorage.getItem("token") } });
+        const json = await res.json();
+        if (json.success) { localStorage.removeItem("token"); navigate("/signup"); }
+        else showAlert("Failed to delete: " + json.error, "error");
+      } catch { showAlert("Server error", "error"); }
     }
-  }
-};
+  };
 
   return (
-    <div
-      className={`container mt-4 ${isDarkMode ? "text-light" : "text-dark"}`}
-    >
-      <div
-        className={`card shadow-sm p-4 ${
-          isDarkMode ? "bg-dark text-light" : "bg-white"
-        }`}
-        style={{ maxWidth: "500px", margin: "0 auto" }}
-      >
-        <h2 className="text-center mb-4">User Profile</h2>
-
-        {loading ? (
-          <p className="text-center">Loading...</p>
-        ) : (
+    <div className="gk-main" style={{ maxWidth: 500 }}>
+      <h2 style={{ fontSize: 22, fontWeight: 400, color: 'var(--gk-text)', marginBottom: 24 }}>Account settings</h2>
+      {loading ? (
+        <p style={{ color: 'var(--gk-text-secondary)' }}>Loading…</p>
+      ) : (
+        <div style={{ background: 'var(--gk-surface)', border: '1px solid var(--gk-border)', borderRadius: 8, padding: 24 }}>
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label">
-                Email address (read-only)
-              </label>
-              <input
-                type="email"
-                className={`form-control ${
-                  isDarkMode ? "bg-secondary text-light border-0" : ""
-                }`}
-                id="email"
-                value={user.email}
-                disabled
-                readOnly
-              />
+            <div className="gk-input-group">
+              <label>Email (read-only)</label>
+              <input className="gk-input" type="email" value={user.email} disabled style={{ opacity: .6 }} />
             </div>
-
-            <div className="mb-3">
-              <label htmlFor="name" className="form-label">
-                Full Name
-              </label>
-              <input
-                type="text"
-                className={`form-control ${
-                  isDarkMode ? "bg-secondary text-light border-0" : ""
-                }`}
-                id="name"
-                name="name"
-                value={user.name}
-                onChange={onChange}
-                required
-              />
+            <div className="gk-input-group">
+              <label>Full Name</label>
+              <input className="gk-input" type="text" value={user.name} onChange={e => setUser({ ...user, name: e.target.value })} required />
             </div>
-
-            {/* Password field with toggle */}
-            <div className="mb-3 position-relative">
-              <label htmlFor="password" className="form-label">
-                New Password (leave blank to keep current)
-              </label>
-              <input
-                type={showPassword ? "text" : "password"}
-                className={`form-control ${
-                  isDarkMode ? "bg-secondary text-light border-0" : ""
-                }`}
-                id="password"
-                name="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={5}
-              />
-              {password.length > 0 && password.length < 5 && (
-                <div className="form-text text-danger">
-                  Password must be at least 5 characters.
-                </div>
-              )}
-
-              <span
-                onClick={() => setShowPassword((prev) => !prev)}
-                style={{
-                  position: "absolute",
-                  right: "10px",
-                  top: "38px",
-                  cursor: "pointer",
-                  userSelect: "none",
-                  color: isDarkMode ? "#ccc" : "#555",
-                }}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? "🙈" : "👁️"}
-              </span>
+            <div className="gk-input-group">
+              <label>New Password <span style={{ fontSize: 12, opacity: .7 }}>(leave blank to keep current)</span></label>
+              <div className="gk-input-wrapper">
+                <input className="gk-input" type={showPw ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 5 characters" />
+                <button type="button" className="gk-eye-btn" onClick={() => setShowPw(p => !p)}>{showPw ? "🙈" : "👁️"}</button>
+              </div>
             </div>
-
-            {/* Confirm Password field with toggle */}
-            <div className="mb-3 position-relative">
-              <label htmlFor="confirmPassword" className="form-label">
-                Confirm New Password
-              </label>
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                className={`form-control ${
-                  isDarkMode ? "bg-secondary text-light border-0" : ""
-                }`}
-                id="confirmPassword"
-                name="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                minLength={5}
-              />
-              {confirmPassword.length > 0 && password !== confirmPassword && (
-                <div className="form-text text-danger">
-                  Passwords do not match.
-                </div>
-              )}
-
-              <span
-                onClick={() => setShowConfirmPassword((prev) => !prev)}
-                style={{
-                  position: "absolute",
-                  right: "10px",
-                  top: "38px",
-                  cursor: "pointer",
-                  userSelect: "none",
-                  color: isDarkMode ? "#ccc" : "#555",
-                }}
-                aria-label={
-                  showConfirmPassword ? "Hide password" : "Show password"
-                }
-              >
-                {showConfirmPassword ? "🙈" : "👁️"}
-              </span>
+            <div className="gk-input-group">
+              <label>Confirm New Password</label>
+              <div className="gk-input-wrapper">
+                <input className="gk-input" type={showCPw ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repeat password" />
+                <button type="button" className="gk-eye-btn" onClick={() => setShowCPw(p => !p)}>{showCPw ? "🙈" : "👁️"}</button>
+              </div>
+              {confirmPassword && password !== confirmPassword && <div className="gk-error">Passwords don't match</div>}
             </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary w-100"
-              disabled={password && password.length < 5}
-            >
-              Update Profile
-            </button>
-            <button
-              type="button"
-              className="btn btn-danger w-100 mt-3"
-              onClick={handleDeleteAccount}
-            >
-              Delete Account
+            <button type="submit" className="gk-auth-btn" disabled={password && password.length < 5}>
+              Save changes
             </button>
           </form>
-        )}
-      </div>
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--gk-border)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 500, color: '#d93025', marginBottom: 8 }}>Danger zone</h3>
+            <p style={{ fontSize: 13, color: 'var(--gk-text-secondary)', marginBottom: 12 }}>Deleting your account is permanent and cannot be undone.</p>
+            <button className="gk-btn gk-btn-danger" onClick={handleDeleteAccount}>Delete account</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

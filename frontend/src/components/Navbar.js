@@ -1,98 +1,33 @@
-import React, { useEffect, useState, useRef, useContext } from "react";
+import React, { useEffect, useState, useRef, useContext, useCallback } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import Switch from "react-switch";
 import DarkModeContext from "../context/mode/DarkModeContext";
-import "../App.css";
-import { useCallback } from "react";
 
 const baseUrl = process.env.REACT_APP_API_BASE_URL;
 
-const Navbar = () => {
+const Navbar = ({ searchQuery, setSearchQuery }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isDarkMode, toggleDarkMode } = useContext(DarkModeContext);
-
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
   const [user, setUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-
   const profileRef = useRef(null);
-  const collapseRef = useRef(null);
 
   useEffect(() => {
     const fetchUser = async () => {
-      setLoadingUser(true);
       const token = localStorage.getItem("token");
-      if (!token) {
-        setUser(null);
-        setIsLoggedIn(false);
-        setLoadingUser(false);
-        return;
-      }
-
+      if (!token) { setUser(null); setIsLoggedIn(false); return; }
       try {
-        const response = await fetch(`${baseUrl}/auth/getuser`, {
+        const res = await fetch(`${baseUrl}/auth/getuser`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "auth-token": token,
-          },
+          headers: { "Content-Type": "application/json", "auth-token": token },
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data);
-          setIsLoggedIn(true);
-        } else {
-          setUser(null);
-          setIsLoggedIn(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-        setUser(null);
-        setIsLoggedIn(false);
-      }
-      setLoadingUser(false);
+        if (res.ok) { const data = await res.json(); setUser(data); setIsLoggedIn(true); }
+        else { setUser(null); setIsLoggedIn(false); }
+      } catch { setUser(null); setIsLoggedIn(false); }
     };
-
     fetchUser();
   }, [location]);
-
-useEffect(() => {
-  let inactivityTimer = null;
-
-  const resetTimer = () => {
-    clearTimeout(inactivityTimer);
-    if (isLoggedIn) {
-      inactivityTimer = setTimeout(() => {
-        console.log("User inactive. Logging out.");
-        handleLogout();
-      }, 5 * 60 * 1000); // 5 minutes
-    }
-  };
-
-  const events = ["mousemove", "keydown", "touchstart", "scroll"];
-  events.forEach((event) => window.addEventListener(event, resetTimer));
-
-  resetTimer(); // Start the timer initially
-
-  return () => {
-    clearTimeout(inactivityTimer);
-    events.forEach((event) => window.removeEventListener(event, resetTimer));
-  };
-}, [isLoggedIn]);
-
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (profileRef.current && !profileRef.current.contains(event.target)) {
-        setProfileOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   useEffect(() => {
     document.body.classList.toggle("dark-mode", isDarkMode);
@@ -100,145 +35,76 @@ useEffect(() => {
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
-    setIsLoggedIn(false);
-    setUser(null);
-    setProfileOpen(false);
+    setIsLoggedIn(false); setUser(null); setProfileOpen(false);
     navigate("/login");
   }, [navigate]);
 
   useEffect(() => {
-    const handleClickOutsideNavbar = (event) => {
-      const toggleBtn = document.querySelector(".navbar-toggler");
-      const isNavbarOpen = collapseRef.current?.classList.contains("show");
+    let timer;
+    const reset = () => { clearTimeout(timer); if (isLoggedIn) timer = setTimeout(handleLogout, 5 * 60 * 1000); };
+    const events = ["mousemove", "keydown", "touchstart", "scroll"];
+    events.forEach(e => window.addEventListener(e, reset));
+    reset();
+    return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)); };
+  }, [isLoggedIn, handleLogout]);
 
-      if (
-        isNavbarOpen &&
-        collapseRef.current &&
-        !collapseRef.current.contains(event.target) &&
-        !toggleBtn.contains(event.target)
-      ) {
-        toggleBtn.click();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutsideNavbar);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutsideNavbar);
+  useEffect(() => {
+    const handler = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  return (
-    <nav
-      className={`navbar navbar-expand-lg fixed-top ${
-        isDarkMode ? "navbar-dark bg-dark" : "navbar-light bg-light"
-      }`}
-    >
-      <div className="container-fluid px-3">
-        <NavLink className="navbar-brand" to="/">
-          CryptNote
-        </NavLink>
+  const initials = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarSupportedContent"
-          aria-controls="navbarSupportedContent"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
+  return (
+    <nav className="gk-navbar">
+      <NavLink className="gk-navbar-brand" to="/">
+        <span style={{ fontSize: 28 }}>📝</span>
+        <span style={{ display: 'none', display: 'inline' }}>CryptNote</span>
+      </NavLink>
+
+      {isLoggedIn && setSearchQuery && (
+        <div className="gk-search-bar">
+          <span style={{ color: 'var(--gk-text-secondary)' }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Search your notes"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button className="gk-nav-icon" style={{ fontSize: 14 }} onClick={() => setSearchQuery("")}>✕</button>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
+        <button className="gk-nav-icon" onClick={toggleDarkMode} title={isDarkMode ? "Light mode" : "Dark mode"}>
+          {isDarkMode ? "☀️" : "🌙"}
         </button>
 
-        <div
-          className="collapse navbar-collapse justify-content-end"
-          id="navbarSupportedContent"
-          ref={collapseRef}
-        >
-          <ul
-            className="navbar-nav d-flex align-items-lg-center"
-            style={{ gap: "1rem" }}
-          >
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/" end>
-                Note Organizer
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/about">
-                About
-              </NavLink>
-            </li>
-
-            {loadingUser ? (
-              <li className="nav-item">
-                <span className={isDarkMode ? "text-light" : "text-dark"}>
-                  Loading...
-                </span>
-              </li>
-            ) : (
-              user && (
-                <li
-                  className="nav-item dropdown"
-                  ref={profileRef}
-                  style={{ cursor: "pointer" }}
-                >
-                  <span
-                    className={`nav-link dropdown-toggle ${
-                      isDarkMode ? "text-light" : "text-dark"
-                    }`}
-                    onClick={() => setProfileOpen((prev) => !prev)}
-                    id="profileDropdown"
-                    role="button"
-                    aria-expanded={profileOpen}
-                  >
-                    Hi, {user.email}
-                  </span>
-                  <ul
-                    className={`dropdown-menu dropdown-menu-end${
-                      profileOpen ? " show" : ""
-                    } ${isDarkMode ? "dropdown-menu-dark" : ""}`}
-                    aria-labelledby="profileDropdown"
-                  >
-                    <li>
-                      <NavLink
-                        className="dropdown-item"
-                        to="/profile"
-                        onClick={() => setProfileOpen(false)}
-                      >
-                        Profile
-                      </NavLink>
-                    </li>
-                    <li>
-                      <hr className="dropdown-divider" />
-                    </li>
-                    <li>
-                      <button
-                        className="dropdown-item text-danger"
-                        onClick={handleLogout}
-                      >
-                        Logout
-                      </button>
-                    </li>
-                  </ul>
-                </li>
-              )
+        {isLoggedIn && user && (
+          <div ref={profileRef} style={{ position: 'relative' }}>
+            <div className="gk-avatar" onClick={() => setProfileOpen(p => !p)} title={user.name}>
+              {initials}
+            </div>
+            {profileOpen && (
+              <div className="gk-dropdown">
+                <div style={{ padding: '16px', borderBottom: '1px solid var(--gk-border)' }}>
+                  <div style={{ fontWeight: 500, color: 'var(--gk-text)' }}>{user.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--gk-text-secondary)' }}>{user.email}</div>
+                </div>
+                <NavLink className="gk-dropdown-item" to="/profile" onClick={() => setProfileOpen(false)}>
+                  👤 Manage Account
+                </NavLink>
+                <div className="gk-dropdown-divider" />
+                <button className="gk-dropdown-item" onClick={handleLogout} style={{ color: '#d93025' }}>
+                  🚪 Sign out
+                </button>
+              </div>
             )}
-
-            {/* Dark Mode Switch at the end */}
-            <li className="nav-item d-flex align-items-center">
-              <Switch
-                onChange={toggleDarkMode}
-                checked={isDarkMode}
-                offColor="#ccc"
-                onColor="#0d6efd"
-                uncheckedIcon={false}
-                checkedIcon={false}
-                height={20}
-                width={40}
-              />
-            </li>
-          </ul>
-        </div>
+          </div>
+        )}
       </div>
     </nav>
   );

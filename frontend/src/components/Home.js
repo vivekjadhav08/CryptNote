@@ -1,11 +1,5 @@
 import Notes from "./Notes";
-
-const Home = (props) => {
-  const { showAlert } = props;
-  return (
-    <div>
-      <Notes showAlert={showAlert} />
-    </div>
-  );
-};
+const Home = ({ showAlert, searchQuery }) => (
+  <Notes showAlert={showAlert} searchQuery={searchQuery} />
+);
 export default Home;

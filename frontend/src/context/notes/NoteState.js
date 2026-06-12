@@ -3,82 +3,70 @@ import { useState } from "react";
 
 const NoteState = (props) => {
   const host = process.env.REACT_APP_API_BASE_URL;
-  
-  const notesInitial = [];
-  const [notes, setNotes] = useState(notesInitial);
-
-  // 🔐 Get token from localStorage
+  const [notes, setNotes] = useState([]);
   const getToken = () => localStorage.getItem("token");
 
-  // 📒 Get all notes
   const getNotes = async () => {
-    const response = await fetch(`${host}/notes/fetchallnotes`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "auth-token": getToken(), // now returns the token string
-      },
-    });
-    const json = await response.json();
-    setNotes(json);
+    try {
+      const response = await fetch(`${host}/notes/fetchallnotes`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json", "auth-token": getToken() },
+      });
+      const json = await response.json();
+      setNotes(Array.isArray(json) ? json : []);
+    } catch (err) { console.error(err); }
   };
 
-  // ➕ Add a note
-  const addNote = async (title, description, tag) => {
-    const response = await fetch(`${host}/notes/addnote`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "auth-token": getToken(),
-      },
-      body: JSON.stringify({ title, description, tag }),
-    });
-    const note = await response.json();
-    setNotes(notes.concat(note));
+  const addNote = async (title, description, tag, color, reminder, image) => {
+    try {
+      const response = await fetch(`${host}/notes/addnote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "auth-token": getToken() },
+        body: JSON.stringify({ title, description, tag, color, reminder, image }),
+      });
+      const note = await response.json();
+      setNotes((prev) => [note, ...prev]);
+    } catch (err) { console.error(err); }
   };
 
-  // ❌ Delete a note
   const deleteNote = async (id) => {
-    await fetch(`${host}/notes/deletenote/${id}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "auth-token": getToken(),
-      },
-    });
-
-    const newNotes = notes.filter((note) => note._id !== id);
-    setNotes(newNotes);
+    try {
+      await fetch(`${host}/notes/deletenote/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "auth-token": getToken() },
+      });
+      setNotes((prev) => prev.filter((n) => n._id !== id));
+    } catch (err) { console.error(err); }
   };
 
-  // ✏️ Edit a note
-  const editNote = async (id, title, description, tag) => {
-    await fetch(`${host}/notes/updatenote/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "auth-token": getToken(),
-      },
-      body: JSON.stringify({ title, description, tag }),
-    });
+  const editNote = async (id, title, description, tag, color, reminder, image) => {
+    try {
+      await fetch(`${host}/notes/updatenote/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "auth-token": getToken() },
+        body: JSON.stringify({ title, description, tag, color, reminder, image }),
+      });
+      setNotes((prev) =>
+        prev.map((n) => n._id === id ? { ...n, title, description, tag, color, reminder, image } : n)
+      );
+    } catch (err) { console.error(err); }
+  };
 
-    let newNotes = JSON.parse(JSON.stringify(notes));
-    for (let index = 0; index < newNotes.length; index++) {
-      const element = newNotes[index];
-      if (element._id === id) {
-        newNotes[index].title = title;
-        newNotes[index].description = description;
-        newNotes[index].tag = tag;
-        break;
-      }
-    }
-    setNotes(newNotes);
+  const togglePin = async (id) => {
+    try {
+      const response = await fetch(`${host}/notes/togglepin/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "auth-token": getToken() },
+      });
+      const { note } = await response.json();
+      setNotes((prev) =>
+        [...prev.map((n) => (n._id === id ? note : n))].sort((a, b) => b.isPinned - a.isPinned)
+      );
+    } catch (err) { console.error(err); }
   };
 
   return (
-    <NoteContext.Provider
-      value={{ notes, addNote, deleteNote, editNote, getNotes }}
-    >
+    <NoteContext.Provider value={{ notes, addNote, deleteNote, editNote, getNotes, togglePin }}>
       {props.children}
     </NoteContext.Provider>
   );

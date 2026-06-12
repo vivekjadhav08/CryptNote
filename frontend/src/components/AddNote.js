@@ -1,91 +1,136 @@
-import React, { useContext, useState } from "react";
+import React, { useState, useContext, useRef } from "react";
 import noteContext from "../context/notes/noteContext";
-import DarkModeContext from "../context/mode/DarkModeContext";
 
-const AddNote = (props) => {
-  const context = useContext(noteContext);
-  const { isDarkMode } = useContext(DarkModeContext);
+const COLORS = [
+  { label: "Default", value: "#ffffff" },
+  { label: "Red", value: "#f28b82" },
+  { label: "Orange", value: "#fbbc04" },
+  { label: "Yellow", value: "#fff475" },
+  { label: "Green", value: "#ccff90" },
+  { label: "Teal", value: "#a7ffeb" },
+  { label: "Blue", value: "#cbf0f8" },
+  { label: "Purple", value: "#d7aefb" },
+  { label: "Pink", value: "#fdcfe8" },
+];
 
-  const [note, setNote] = useState({ title: "", description: "", tag: "" });
+const AddNote = ({ showAlert }) => {
+  const { addNote } = useContext(noteContext);
+  const [expanded, setExpanded] = useState(false);
+  const [note, setNote] = useState({ title: "", description: "", tag: "", color: "#ffffff", reminder: "" });
+  const [image, setImage] = useState(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const boxRef = useRef(null);
+  const fileRef = useRef(null);
 
-  const handleClick = (e) => {
-    e.preventDefault();
-    context.addNote(note.title, note.description, note.tag);
-    setNote({ title: "", description: "", tag: "" });
-    props.showAlert("Note added successfully!", "success");
+  const handleSubmit = async () => {
+    if (note.description.length < 5 && note.title.length < 3) return;
+    const title = note.title || note.description.slice(0, 30);
+    const description = note.description || note.title;
+    if (title.length < 3 || description.length < 5) {
+      showAlert("Title min 3 chars, description min 5 chars", "error"); return;
+    }
+    await addNote(title, description, note.tag, note.color, note.reminder || null, image);
+    setNote({ title: "", description: "", tag: "", color: "#ffffff", reminder: "" });
+    setImage(null); setExpanded(false); setShowColorPicker(false);
+    showAlert("Note added!", "success");
   };
 
-  const onChange = (e) => setNote({ ...note, [e.target.name]: e.target.value });
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") { setExpanded(false); setShowColorPicker(false); }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setImage(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const cardBg = note.color === "#ffffff" ? "var(--gk-surface)" : note.color;
 
   return (
-    <div
-      className={`container mt-4 px-2 px-sm-4 ${
-        isDarkMode ? "text-light" : "text-dark"
-      }`}
-    >
-      <div
-        className={`card shadow-sm p-3 p-md-4 ${
-          isDarkMode ? "bg-dark text-light" : "bg-white"
-        }`}
-      >
-        <h3 className="text-center mb-4">Add a New Note</h3>
-        <form>
-          {["title", "description", "tag"].map((field, idx) => (
-            <div className="mb-3" key={idx}>
-              <label htmlFor={field} className="form-label">
-                {field[0].toUpperCase() + field.slice(1)}
-              </label>
-              {field === "description" ? (
-                <textarea
-                  className={`form-control ${
-                    isDarkMode ? "bg-secondary text-light border-0" : ""
-                  }`}
-                  id={field}
-                  name={field}
-                  value={note[field]}
-                  onChange={onChange}
-                  rows="3"
-                />
-              ) : (
+    <div className="gk-add-note-box" ref={boxRef} style={{ background: cardBg }} onKeyDown={handleKeyDown}>
+      {!expanded ? (
+        <div className="gk-add-note-collapsed" onClick={() => setExpanded(true)}>
+          <span>Take a note…</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="gk-nav-icon" style={{ fontSize: 18 }} title="New list" onClick={e => { e.stopPropagation(); setExpanded(true); }}>☑️</button>
+            <button className="gk-nav-icon" style={{ fontSize: 18 }} title="New note with image" onClick={e => { e.stopPropagation(); setExpanded(true); fileRef.current?.click(); }}>🖼️</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {image && (
+            <div className="gk-img-preview" style={{ margin: 0, borderRadius: '8px 8px 0 0', overflow: 'hidden' }}>
+              <img src={image} alt="preview" style={{ maxHeight: 180 }} />
+              <button className="gk-img-remove" onClick={() => setImage(null)}>✕</button>
+            </div>
+          )}
+          <div className="gk-add-note-expanded">
+            <input
+              type="text"
+              placeholder="Title"
+              value={note.title}
+              autoFocus
+              onChange={e => setNote({ ...note, title: e.target.value })}
+            />
+            <textarea
+              placeholder="Take a note…"
+              value={note.description}
+              onChange={e => setNote({ ...note, description: e.target.value })}
+              rows={3}
+            />
+            {note.tag !== undefined && note.reminder !== undefined && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                 <input
                   type="text"
-                  className={`form-control ${
-                    isDarkMode ? "bg-secondary text-light border-0" : ""
-                  }`}
-                  id={field}
-                  name={field}
-                  value={note[field]}
-                  onChange={onChange}
+                  placeholder="Tag (e.g. Work)"
+                  value={note.tag}
+                  onChange={e => setNote({ ...note, tag: e.target.value })}
+                  style={{ border: '1px solid var(--gk-border)', borderRadius: 16, padding: '4px 12px', fontSize: 13, background: 'transparent', color: 'var(--gk-text)', outline: 'none', width: 140 }}
                 />
-              )}
+                <input
+                  type="datetime-local"
+                  value={note.reminder}
+                  onChange={e => setNote({ ...note, reminder: e.target.value })}
+                  style={{ border: '1px solid var(--gk-border)', borderRadius: 4, padding: '4px 8px', fontSize: 13, background: 'transparent', color: 'var(--gk-text)', outline: 'none' }}
+                />
+              </div>
+            )}
+          </div>
 
-              {/* Validation Messages */}
-              {field === "title" &&
-                note.title.length > 0 &&
-                note.title.length < 3 && (
-                  <div className="form-text text-danger">
-                    Title must be at least 3 characters.
-                  </div>
-                )}
-              {field === "description" &&
-                note.description.length > 0 &&
-                note.description.length < 5 && (
-                  <div className="form-text text-danger">
-                    Description must be at least 5 characters.
-                  </div>
-                )}
+          {showColorPicker && (
+            <div style={{ padding: '8px 12px', borderTop: '1px solid var(--gk-border)' }}>
+              <div className="gk-colors">
+                {COLORS.map(c => (
+                  <button key={c.value} className={`gk-color-dot ${note.color === c.value ? 'selected' : ''}`}
+                    style={{ background: c.value === "#ffffff" ? "var(--gk-surface)" : c.value, border: `2px solid ${note.color === c.value ? 'var(--gk-text)' : 'var(--gk-border)'}` }}
+                    title={c.label}
+                    onClick={() => setNote({ ...note, color: c.value })}
+                  />
+                ))}
+              </div>
             </div>
-          ))}
-          <button
-            type="submit"
-            className="btn btn-success w-100 py-2"
-            onClick={handleClick}
-            disabled={note.title.length < 3 || note.description.length < 5}
-          >
-            Add Note
-          </button>
-        </form>
-      </div>
+          )}
+
+          <div className="gk-add-note-footer">
+            <div style={{ display: 'flex', gap: 2 }}>
+              <button className="gk-note-action-btn" title="Add reminder" onClick={() => {}}>⏰</button>
+              <button className="gk-note-action-btn" title="Background color" onClick={() => setShowColorPicker(p => !p)}>🎨</button>
+              <button className="gk-note-action-btn" title="Add image" onClick={() => fileRef.current?.click()}>🖼️</button>
+              <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="gk-btn gk-btn-ghost" onClick={() => { setExpanded(false); setShowColorPicker(false); }}>Close</button>
+              <button className="gk-btn gk-btn-primary" onClick={handleSubmit}
+                disabled={note.title.length < 3 && note.description.length < 5}>
+                Save
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

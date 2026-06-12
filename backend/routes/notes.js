@@ -4,94 +4,92 @@ const router = express.Router();
 const Note = require('../models/Note');
 const { body, validationResult } = require('express-validator');
 
-
-//ROUTE 1 :Get All the notes  Endpoint: Get "api/notes/fetchallnotes"  login required
+// ROUTE 1: Get all notes - pinned first
 router.get('/fetchallnotes', fetchuser, async (req, res) => {
-    try {
-        const notes = await Note.find({ user: req.user.id });
-        res.json(notes)
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).send("Internal Server Error")
-    }
-})
+  try {
+    const notes = await Note.find({ user: req.user.id }).sort({ isPinned: -1, date: -1 });
+    res.json(notes);
+  } catch (error) {
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-//ROUTE 2 :Add notes  Endpoint: Post "api/notes/addnote"  login required
+// ROUTE 2: Add note
 router.post('/addnote', fetchuser, [
-    body('title', 'Enter Valid Title').isLength({ min: 3 }),
-    body('description', 'Description must be atleast 5 charector').isLength({ min: 5 }),
-
+  body('title', 'Enter Valid Title').isLength({ min: 3 }),
+  body('description', 'Description must be at least 5 characters').isLength({ min: 5 }),
 ], async (req, res) => {
-    try {
-        const { title, description, tag } = req.body;
-        //If there are error return bad request
-        const error = validationResult(req);
-        if (!error.isEmpty()) {
-            return res.status(400).send({ error: error.array() });
-        }
-        const note = new Note({
-            title, description, tag, user: req.user.id
-        })
-        const savedNote = await note.save();
-        res.json(savedNote)
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).send("Internal Server Error")
-    }
-})
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).send({ error: errors.array() });
+    const { title, description, tag, color, isPinned, reminder, image } = req.body;
+    const note = new Note({
+      title, description,
+      tag: tag || 'General',
+      color: color || '#ffffff',
+      isPinned: isPinned || false,
+      reminder: reminder || null,
+      image: image || null,
+      user: req.user.id
+    });
+    const savedNote = await note.save();
+    res.json(savedNote);
+  } catch (error) {
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-//ROUTE 3 :Update notes  Endpoint:Put "api/notes/updatenote"  login required
+// ROUTE 3: Update note
 router.put('/updatenote/:id', fetchuser, [
-    body('title', 'Enter Valid Title').isLength({ min: 3 }),
-    body('description', 'Description must be atleast 5 charector').isLength({ min: 5 }),], async (req, res) => {
-        try {
-            const { title, description, tag } = req.body;
-            //If there are error return bad request
-            const error = validationResult(req);
-            if (!error.isEmpty()) {
-                return res.status(400).send({ error: error.array() });
-            }
-            const newNote = {}
-            if (title) { newNote.title = title };
-            if (description) { newNote.description = description };
-            if (tag) { newNote.tag = tag };
+  body('title', 'Enter Valid Title').isLength({ min: 3 }),
+  body('description', 'Description must be at least 5 characters').isLength({ min: 5 }),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).send({ error: errors.array() });
+    const { title, description, tag, color, reminder, image } = req.body;
+    const newNote = {};
+    if (title) newNote.title = title;
+    if (description) newNote.description = description;
+    if (tag !== undefined) newNote.tag = tag;
+    if (color !== undefined) newNote.color = color;
+    if (reminder !== undefined) newNote.reminder = reminder;
+    if (image !== undefined) newNote.image = image;
 
-            //find note to be updated an update it
-            let note = await Note.findById(req.params.id);
-            if (!note) {
-                return res.status(404).send("Not Found")
-            }
-            if (note.user.toString() !== req.user.id) {
-                return res.status(401).send("Not Allowed");
-            }
-            note = await Note.findByIdAndUpdate(req.params.id, { $set: newNote }, { new: true })
-            res.json({ note });
+    let note = await Note.findById(req.params.id);
+    if (!note) return res.status(404).send("Not Found");
+    if (note.user.toString() !== req.user.id) return res.status(401).send("Not Allowed");
+    note = await Note.findByIdAndUpdate(req.params.id, { $set: newNote }, { new: true });
+    res.json({ note });
+  } catch (error) {
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-        } catch (error) {
-            console.error(error.message);
-            res.status(500).send("Internal Server Error")
-        }
-    })
-
-//ROUTE 4 :Delete notes  Endpoint: Delete "api/notes/deletenote"  login required
+// ROUTE 4: Delete note
 router.delete('/deletenote/:id', fetchuser, async (req, res) => {
-    try {
-        //find note to be deleted an delete it
-        let note = await Note.findById(req.params.id);
-        if (!note) {
-            return res.status(404).send("Not Found")
-        }
-        //Allow to delete onye there notes
-        if (note.user.toString() !== req.user.id) {
-            return res.status(401).send("Not Allowed");
-        }
-        note = await Note.findByIdAndDelete(req.params.id)
-        res.json({ "Success": "Note has been Deleted", note: note });
+  try {
+    let note = await Note.findById(req.params.id);
+    if (!note) return res.status(404).send("Not Found");
+    if (note.user.toString() !== req.user.id) return res.status(401).send("Not Allowed");
+    await Note.findByIdAndDelete(req.params.id);
+    res.json({ "Success": "Note has been Deleted" });
+  } catch (error) {
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).send("Internal Server Error")
-    }
-})
+// ROUTE 5: Toggle pin
+router.put('/togglepin/:id', fetchuser, async (req, res) => {
+  try {
+    let note = await Note.findById(req.params.id);
+    if (!note) return res.status(404).send("Not Found");
+    if (note.user.toString() !== req.user.id) return res.status(401).send("Not Allowed");
+    note = await Note.findByIdAndUpdate(req.params.id, { $set: { isPinned: !note.isPinned } }, { new: true });
+    res.json({ note });
+  } catch (error) {
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-module.exports = router
+module.exports = router;
