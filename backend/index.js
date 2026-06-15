@@ -5,25 +5,13 @@ require("dotenv").config();
 
 ConnectToMongo();
 const app = express();
-
-// Use PORT from environment or default to 5000
 const port = process.env.PORT || 5000;
 
-// Middleware
-app.use(express.json());
-// app.use(cors());
-app.use(cors({
-  //origin: "https://cryptnote.netlify.app"
-  origin:"http://localhost:3000"
-}));
+app.use(express.json({ limit: '10mb' }));
+app.use(cors({ origin: "http://localhost:3000" }));
 
-
-// Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/notes", require("./routes/notes"));
+app.use("/api/emi", require("./routes/emi"));
 
-// Start server
-app.listen(port, () => {
-  console.log(`🚀 Server running on ${port}`);
-
-});
+app.listen(port, () => console.log(`🚀 Server running on ${port}`));

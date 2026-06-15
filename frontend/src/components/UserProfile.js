@@ -52,7 +52,7 @@ const UserProfile = ({ showAlert }) => {
   };
 
   return (
-    <div className="gk-main" style={{ maxWidth: 500 }}>
+    <div className="gk-page" style={{ maxWidth: 500 }}>
       <h2 style={{ fontSize: 22, fontWeight: 400, color: 'var(--gk-text)', marginBottom: 24 }}>Account settings</h2>
       {loading ? (
         <p style={{ color: 'var(--gk-text-secondary)' }}>Loading…</p>

@@ -18,10 +18,7 @@ const Navbar = ({ searchQuery, setSearchQuery }) => {
       const token = localStorage.getItem("token");
       if (!token) { setUser(null); setIsLoggedIn(false); return; }
       try {
-        const res = await fetch(`${baseUrl}/auth/getuser`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "auth-token": token },
-        });
+        const res = await fetch(`${baseUrl}/auth/getuser`, { method: "POST", headers: { "Content-Type": "application/json", "auth-token": token } });
         if (res.ok) { const data = await res.json(); setUser(data); setIsLoggedIn(true); }
         else { setUser(null); setIsLoggedIn(false); }
       } catch { setUser(null); setIsLoggedIn(false); }
@@ -29,9 +26,7 @@ const Navbar = ({ searchQuery, setSearchQuery }) => {
     fetchUser();
   }, [location]);
 
-  useEffect(() => {
-    document.body.classList.toggle("dark-mode", isDarkMode);
-  }, [isDarkMode]);
+  useEffect(() => { document.body.classList.toggle("dark-mode", isDarkMode); }, [isDarkMode]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
@@ -43,8 +38,7 @@ const Navbar = ({ searchQuery, setSearchQuery }) => {
     let timer;
     const reset = () => { clearTimeout(timer); if (isLoggedIn) timer = setTimeout(handleLogout, 5 * 60 * 1000); };
     const events = ["mousemove", "keydown", "touchstart", "scroll"];
-    events.forEach(e => window.addEventListener(e, reset));
-    reset();
+    events.forEach(e => window.addEventListener(e, reset)); reset();
     return () => { clearTimeout(timer); events.forEach(e => window.removeEventListener(e, reset)); };
   }, [isLoggedIn, handleLogout]);
 
@@ -54,53 +48,40 @@ const Navbar = ({ searchQuery, setSearchQuery }) => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const initials = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+  const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() : "U";
 
   return (
     <nav className="gk-navbar">
       <NavLink className="gk-navbar-brand" to="/">
-        <span style={{ fontSize: 28 }}>📝</span>
-        <span style={{ display: 'none', display: 'inline' }}>CryptNote</span>
+        <span style={{ fontSize: 26 }}>📝</span>
+        <span style={{ fontSize: 19, fontWeight: 600 }}>CryptNote</span>
       </NavLink>
 
       {isLoggedIn && setSearchQuery && (
         <div className="gk-search-bar">
-          <span style={{ color: 'var(--gk-text-secondary)' }}>🔍</span>
-          <input
-            type="text"
-            placeholder="Search your notes"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button className="gk-nav-icon" style={{ fontSize: 14 }} onClick={() => setSearchQuery("")}>✕</button>
-          )}
+          <span style={{ color: 'var(--gk-text-secondary)', fontSize: 18 }}>🔍</span>
+          <input type="text" placeholder="Search notes…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+          {searchQuery && <button className="gk-nav-icon" style={{ fontSize: 13, width: 28, height: 28 }} onClick={() => setSearchQuery("")}>✕</button>}
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
-        <button className="gk-nav-icon" onClick={toggleDarkMode} title={isDarkMode ? "Light mode" : "Dark mode"}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+        <button className="gk-nav-icon" onClick={toggleDarkMode} title={isDarkMode ? "Light mode" : "Dark mode"} style={{ fontSize: 20 }}>
           {isDarkMode ? "☀️" : "🌙"}
         </button>
-
         {isLoggedIn && user && (
           <div ref={profileRef} style={{ position: 'relative' }}>
-            <div className="gk-avatar" onClick={() => setProfileOpen(p => !p)} title={user.name}>
-              {initials}
-            </div>
+            <div className="gk-avatar" onClick={() => setProfileOpen(p => !p)} title={user.name}>{initials}</div>
             {profileOpen && (
               <div className="gk-dropdown">
-                <div style={{ padding: '16px', borderBottom: '1px solid var(--gk-border)' }}>
-                  <div style={{ fontWeight: 500, color: 'var(--gk-text)' }}>{user.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--gk-text-secondary)' }}>{user.email}</div>
+                <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--gk-border)' }}>
+                  <div style={{ fontWeight: 600, fontSize: 15 }}>{user.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--gk-text-secondary)', marginTop: 2 }}>{user.email}</div>
                 </div>
-                <NavLink className="gk-dropdown-item" to="/profile" onClick={() => setProfileOpen(false)}>
-                  👤 Manage Account
-                </NavLink>
+                <NavLink className="gk-dropdown-item" to="/profile" onClick={() => setProfileOpen(false)}>👤 Manage Account</NavLink>
+                <NavLink className="gk-dropdown-item" to="/emi" onClick={() => setProfileOpen(false)}>💳 EMI Tracker</NavLink>
                 <div className="gk-dropdown-divider" />
-                <button className="gk-dropdown-item" onClick={handleLogout} style={{ color: '#d93025' }}>
-                  🚪 Sign out
-                </button>
+                <button className="gk-dropdown-item" onClick={handleLogout} style={{ color: 'var(--gk-danger)' }}>🚪 Sign out</button>
               </div>
             )}
           </div>

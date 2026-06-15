@@ -2,6 +2,7 @@ import "./App.css";
 import { BrowserRouter as Router, Routes, Route, useLocation, matchPath } from "react-router-dom";
 import { useState } from "react";
 import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
 import Home from "./components/Home";
 import About from "./components/About";
 import Alert from "./components/Alert";
@@ -12,20 +13,23 @@ import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import DarkModeProvider from "./context/mode/DarkModeProvider";
 import UserProfile from "./components/UserProfile";
+import EMITracker from "./components/EMITracker";
 
-const hiddenPaths = ["/login", "/signup", "/ForgotPassword", "/resetpassword/:token"];
+const authPaths = ["/login", "/signup", "/ForgotPassword", "/resetpassword/:token"];
 
 const AppContent = ({ showAlert, alert }) => {
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const isAuthPage = hiddenPaths.some(p => matchPath({ path: p, end: true }, location.pathname));
+  const isAuth = authPaths.some(p => matchPath({ path: p, end: true }, location.pathname));
 
   return (
     <>
-      {!isAuthPage && <Navbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
+      {!isAuth && <Navbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
+      {!isAuth && <Sidebar />}
       <Alert alert={alert} />
       <Routes>
         <Route path="/" element={<Home showAlert={showAlert} searchQuery={searchQuery} />} />
+        <Route path="/emi" element={<EMITracker showAlert={showAlert} />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login showAlert={showAlert} />} />
         <Route path="/signup" element={<Signup showAlert={showAlert} />} />
@@ -41,7 +45,7 @@ function App() {
   const [alert, setAlert] = useState(null);
   const showAlert = (message, type) => {
     setAlert({ msg: message, type });
-    setTimeout(() => setAlert(null), 2000);
+    setTimeout(() => setAlert(null), 2500);
   };
   return (
     <NoteState>
